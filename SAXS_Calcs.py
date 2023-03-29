@@ -204,9 +204,9 @@ class SAXSCalcs:
 
 
     def nPlot_variX_and_Color(self,pairList,labelList,colorList,savelabel,xlabel='No Label Provided',ylabel='No Label Provided',
-              LogLin=True,LinLin=False,LogLog=False,linewidth=3,
+              LogLin=False,LinLin=True,LogLog=False,linewidth=3,
               set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,
-              lg_size=8):
+              lg_size=4,marker=False):
         '''
         :param pairList: list of lists (tuple), must be [[x1,y1],...[xn,yn]]
         :param labelList: list of length n, labeling the sets of tuples in pairList
@@ -229,79 +229,84 @@ class SAXSCalcs:
         fig=plt.figure(figsize=(6,4.5)) # set figure dimensions
         ax1=fig.add_subplot(1,1,1) # allows us to build more complex plots
         for tick in ax1.xaxis.get_major_ticks():
-            tick.label1.set_fontsize(13) # scale for publication needs
+            tick.label1.set_fontsize(10) # scale for publication needs
             tick.label1.set_fontname('Avenir')
         for tick in ax1.yaxis.get_major_ticks():
-            tick.label1.set_fontsize(13) # scale for publication needs
+            tick.label1.set_fontsize(10) # scale for publication needs
             tick.label1.set_fontname('Avenir')
 
-        if LogLin == True and LinLin == True and LogLog == True: # kicks you out of the function if you set more then one mode to true
-            print("Cannot set more than one mode equal to True")
-            return
-        elif LogLin == True and LinLin == True:
-            print("Cannot set more than one mode equal to True")
-            return
-        elif LogLin == True and LogLog == True:
-            print("Cannot set more than one mode equal to True")
-            return
-        elif LinLin == True and LogLog == True:
-            print("Cannot set more than one mode equal to True")
-            return
+        # if LogLin == True and LinLin == True and LogLog == True: # kicks you out of the function if you set more then one mode to true
+        #     print("Cannot set more than one mode equal to True")
+        #     return
+        # elif LogLin == True and LinLin == True:
+        #     print("Cannot set more than one mode equal to True")
+        #     return
+        # elif LogLin == True and LogLog == True:
+        #     print("Cannot set more than one mode equal to True")
+        #     return
+        # elif LinLin == True and LogLog == True:
+        #     print("Cannot set more than one mode equal to True")
+        #     return
 
         cycol = cycle(['-','-','-'])    
 
-        n=0
-        if LogLin==True:
-            for i,j in zip(pairList,colorList):
-                plt.semilogy(i[0],i[1],
-                            label=labelList[n],
-                            linewidth=linewidth,
-                            color=j,
-                            linestyle=next(cycol))
-                n+=1
-                # plt.semilogy(i[2],i[3],
-                #             label=labelList[n],
-                #             linewidth=linewidth,
-                #             color=c1)
-                # n+=1
-        elif LinLin==True:
-            for i,j,z in zip(pairList,colorList,labelList):
-                plt.plot(i[0],i[1],
-                            label=z,
-                            linewidth=linewidth,
-                            color=j,
-                            linestyle=next(cycol))
-                n+=1
-                # plt.plot(i[2],i[3],
-                #             label=labelList[n],
-                #             color=c1,
-                #             linewidth=linewidth)
-                n+=1
-        elif LogLog==True:
-            for i in pairList:
-                plt.plot(i[0],i[1],
-                            label=labelList[n],
-                            linewidth=linewidth,
-                             linestyle='dotted')
-                n+=1
-                plt.plot(i[2],i[3],
-                            label=labelList[n],
-                            linewidth=linewidth)
-                n+=1
-                ax1.set_yscale('log')
-                ax1.set_xscale('log')
+        if marker == True:
+          print('MARKER')
+          for i,j,z in zip(pairList,colorList,labelList):
+              plt.plot(i[0],i[1],
+                          label=z,
+                          color=j,
+                          marker='o',
+                          markersize=linewidth)
+        else:
+          n=0
+          if LogLin==True:
+              for i,j in zip(pairList,colorList):
+                  plt.semilogy(i[0],i[1],
+                              label=labelList[n],
+                              linewidth=linewidth,
+                              color=j,
+                              linestyle=next(cycol))
+                  n+=1
+                  # plt.semilogy(i[2],i[3],
+                  #             label=labelList[n],
+                  #             linewidth=linewidth,
+                  #             color=c1)
+                  # n+=1
+          elif LinLin==True:
+              for i,j,z in zip(pairList,colorList,labelList):
+                  plt.plot(i[0],i[1],
+                              label=z,
+                              linewidth=linewidth,
+                              color=j,
+                              linestyle=next(cycol))
+                  n+=1
+          elif LogLog==True:
+              for i in pairList:
+                  plt.plot(i[0],i[1],
+                              label=labelList[n],
+                              linewidth=linewidth,
+                               linestyle='dotted')
+                  n+=1
+                  plt.plot(i[2],i[3],
+                              label=labelList[n],
+                              linewidth=linewidth)
+                  n+=1
+                  ax1.set_yscale('log')
+                  ax1.set_xscale('log')
 
 
         plt.ylabel(ylabel,size=16)
         plt.xlabel(xlabel,size=16)
-        plt.legend(numpoints=1,fontsize=lg_size,loc='best')
+        if marker != True:
+          plt.legend(numpoints=1,fontsize=lg_size,loc='best')
 
 
         if set_ylim==True:
             ax1.set_ylim(ylow,yhigh)
         # else:
             # print('Using default y-limit range for the plot: %s'%savelabel)
-        fig.tight_layout()
+        # fig.tight_layout()
 
         plt.savefig(savelabel+'.png',format='png',bbox_inches='tight',dpi=300)
         plt.show()
@@ -798,6 +803,671 @@ class SAXSCalcs:
 
 
         return svd_results # returns dictionary containing singular values, and both right and left singular vectors
+
+    def SVD2(self,
+        file_path,
+        fileList,
+        nmin=0,
+        qmax=None,
+        SVs=3,
+        plot=True,
+        savelabel='SVD',
+        error_mode='average',
+        input_mode='Lin-Lin',
+        alphaGradient = True):
+        '''
+        Doc string
+        
+        Inputs:
+        file_path: the full directory path to the directory that contains the .dat files that are to be processed by the SVD algorithm
+
+        fileList: A list of files to grab from the 'file_path' directory, default is to grab ALL .dat files in the 'file_path' directory
+
+        nmin: How many points to cleave at the beginning
+
+        qmax: Maximum q-value 
+
+        SVs: How many singular values to plot in the V/U plots
+
+        plot: True or False, creates and saves plot regardless.
+
+        savelabel: savelabel for the figure
+
+        error_mode: 'average' or 'direct' BUT 'direct' is technically wrong, just a trick Darren found.
+
+        input_mode: 'Lin-Lin' or 'Kratky'
+
+        alphaGradient: True or False. If true, rows of U plot with use a alpha gradient to make profiles increasingly transparent.
+
+        Returns:
+        Left singular vector: U
+        Singular values: s
+        Right singular vectors: Vh
+        A combined plot of them if plot == True
+        '''
+
+        # Set up file path and inputs
+
+
+        def load_datFilesFull(fileList):
+          c=1
+          diction={}
+          for i in fileList:
+            x = re.sub(".*/", "", i) # replaces any of the path and grabs just the file name
+
+            diction[str(x)] = np.loadtxt(i, 
+              dtype = {'names': ('Q', 'I(Q)', 'ERROR'), 
+              'formats': (float, float, float)},
+              comments = '#')
+          return diction
+
+        if fileList == 'None':
+          fileList_clean = []
+          for j in os.listdir(file_path): # ensures we are only grabbing .dat file
+            if j.endswith(".dat"):
+              fileList_clean.append(j)
+        else:
+          fileList_clean = fileList
+
+        fileList_clean = list(fileList_clean)
+
+        datFileList = []
+        for j in fileList_clean:
+            datFileList.append(file_path + j)
+
+        ## Load in data
+
+        data = load_datFilesFull(fileList=datFileList)
+
+        ## Print messages
+        pn=60
+        print('#'*pn)
+        print('--> Running SVD')
+        print('#'*pn)
+
+        ## Singular values input
+        print('It has been assumed there are %s significant singular values.\nSome output plots will reflect this.'%str(SVs))
+        print('#'*pn)
+        ## Final message
+        print('\n')
+        if input_mode == 'Kratky':
+            print('Input as Kratky [I * q^2]')
+            print('#'*pn)
+
+
+        dim1 = len(datFileList) # first dimension of the array - i.e. how many input files
+
+        # Set data limits
+
+        c=0
+        for j in fileList_clean: # iterate through the list and the nmax that corresponds to qmax
+          if qmax is not None:
+            x = np.where(data[str(j)]['Q'] > qmax)
+            nhigh = x[0][0]
+          c+=1
+          if c >= 1:
+            break
+          else:
+            minList = []
+            for i in fileList_clean:
+              minList.append(len(data[str(i)]['I(Q)']))
+              nhigh = np.min(minList)
+
+        nlow = int(nmin)
+
+        ## Build error List
+
+        n = 0
+        matrixB = []
+        for j in fileList_clean:
+          error = np.nan_to_num(x=data[str(j)]['ERROR'][nlow:nhigh], nan=0) # remove nan
+          avg_error = np.mean(error) # calculate average error for the I array
+          matrixB.append([avg_error]*(nhigh-nlow))
+          matrixB = list(matrixB[0]) # have to flatten - i.e. array within array
+          n+=1
+          if n >= 1:
+            break
+
+        ## Build SVD list
+
+        svd_List = []
+        for j in fileList_clean:
+          I = np.nan_to_num(x=data[str(j)]['I(Q)'][nlow:nhigh], nan=0) # * remove nan
+          q = np.nan_to_num(x=data[str(j)]['Q'][nlow:nhigh], nan=0) # * remove nan
+          error = np.nan_to_num(x=data[str(j)]['ERROR'][nlow:nhigh], nan=0) # * remove nan
+          if error_mode == "average":
+            sigmaWeighted_I = []
+            for i,j in zip(I, matrixB):
+              sigmaWeighted_I.append(i/j)
+          else: 
+            sigmaWeighted_I = I / error
+
+          if input_mode == 'Lin-Lin':
+            svd_List.append(sigmaWeighted_I)
+          elif input_mode == 'Kratky':
+            kratky_I = sigmaWeighted_I * (q**2) # ! Is this the proper method for propagating error in this case?
+            svd_List.append(kratky_I)
+
+        svd_List = np.asarray(svd_List) # * convert list to numpy array
+
+        ## Run SVD
+
+        svd_results = {}
+        svd_results['Vh'], svd_results['s'], svd_results['U'] = sp.svd(svd_List, 
+          full_matrices=False, # ? doesn't assume symmetric matrix - but is that safe to assume in this case?
+          lapack_driver='gesdd') # * 'gesdd' is the same method used by MATLAB
+
+
+        ## Plotting results
+
+        if plot == True: # allows user to turn plotting off. Makes it easier for me to trouble shoot
+          ### Kratky of input data
+          pairList_1 = []
+          for j in fileList_clean:
+            pairList_1.append([data[str(j)]['Q'][nlow:nhigh],
+                            data[str(j)]['I(Q)'][nlow:nhigh]*data[str(j)]['Q'][nlow:nhigh]**2])
+          labs = np.linspace(1,len(fileList_clean),
+                             len(fileList_clean))
+          labelList_1 = []
+          # for i in labs:
+          #   labelList.append(str(i))
+          for i in fileList_clean:
+            labelList_1.append(str(os.path.splitext(str(i))[0]))
+
+          colorList_1 = []
+          c1 = Color("#EB7302")
+          c2 = Color("#02CFEB")
+          gradient = list(c1.range_to(c2, len(labelList_1)))
+
+          for j in gradient:
+            colorList_1.append(str(j))     
+          # print(colorList)
+          sl = '%s_Titration_Kratky'%str(savelabel)
+
+          # self.nPlot_variX_and_Color(pairList=pairList_1,
+          #   labelList=labelList_1,
+          #   colorList=colorList_1,
+          #   savelabel=sl,
+          #   xlabel='q=$(\\frac{4 \pi sin(\\theta)}{\lambda}) (\\AA^{-1})$',
+          #   ylabel='I(q) $\\cdot q^{2}$',
+          #   LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+          #   set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+          ### Singular values
+          # del pairList, labelList, colorList, sl
+          points = np.linspace(0,
+                               len(svd_results['s']),
+                               len(svd_results['s']))
+          # points = str(int(points))
+          pairList_2 = [[points,svd_results['s']]]
+          labelList_2 = ['%s'%str(savelabel)]
+          colorList_2 = ['black']
+          sl = '%s_SVD_SingularVals'%str(savelabel)
+          # self.nPointPlot_variX_and_Color(pairList=pairList_2,labelList=labelList_2,
+          #                                 colorList=colorList_2,
+          #                                 savelabel=sl,
+          #                                 xlabel='Index (i)',
+          #                                 ylabel='Singular Values',
+          #                                 LogLin=True,LinLin=False,LogLog=False,linewidth=3,
+          #                                 set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+          
+          ### --> Plotting columns of V
+          pairList_3 = []
+          points = np.linspace(0,
+                               len(svd_results['s']),
+                               len(svd_results['s']))
+          # points = str(int(points))
+          ind = SVs
+          for j in svd_results['Vh'].T[:ind]:
+            pairList_3.append([points,j])
+
+          labs = np.linspace(1,ind,ind)
+          labelList_3 = []
+          for i in labs:
+            labelList_3.append(str(i))
+          n = ind
+
+          colorList_3 = []
+          c1 = Color("#EB7302")
+          c2 = Color("#02CFEB")
+          gradient = list(c1.range_to(c2, len(labelList_3)))
+
+          for j in gradient:
+            colorList_3.append(str(j))  
+
+          sl = '%s_V_Vectors'%str(savelabel)
+
+          # self.nPlot_variX_and_Color(pairList=pairList_3,labelList=labelList_3,
+          #                            colorList=colorList_3,
+          #                            savelabel=sl,
+          #                             xlabel='Point',
+          #                             ylabel='Columns of V',
+          #                             LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+          #                             set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+
+
+          ### --> Autocorrelation of V
+          '''
+          This is done in RAW for both the left and right singular vectors but it is
+          not clear to me how to do this exactly.. 
+          '''
+
+
+          ### --> Plotting columns of U
+          pairList_4 = []
+          ind = SVs
+          print('Hello')
+          qList = []
+          for j,k in zip(svd_results['U'][:ind], fileList_clean):
+            if error_mode == 'average':
+              pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j])
+              svd_results['Q'] = [data[str(k)]['Q'][nlow:nhigh]]
+              qList.append(data[str(k)]['Q'][nlow:nhigh])
+              print('HELLO')
+            else:
+              error = np.nan_to_num(x=data[str(k)]['ERROR'][nlow:nhigh], nan=0)
+              pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j*error])
+
+
+          labs = np.linspace(1,ind,ind)
+          labelList_4 = []
+          for i in labs:
+            labelList_4.append(str(i))
+          n = ind
+
+          colorList_4 = []
+          c1 = Color("#EB7302")
+          c2 = Color("#02CFEB")
+          gradient = list(c1.range_to(c2, len(labelList_4)))
+
+          for j in gradient:
+            colorList_4.append(str(j))  
+
+          sl= '%s_U_Vectors'%str(savelabel)
+
+          # self.nPlot_variX_and_Color(pairList=pairList_4,labelList=labelList_4,colorList=colorList_4,
+          #                            savelabel=sl,
+          #                            xlabel='q=$(\\frac{4 \pi sin(\\theta)}{\lambda}) (\\AA^{-1})$',
+          #                            ylabel='Rows of U',
+          #                            LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+          #                            set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+          ###  -->  4 Panel Plot
+
+          self.nPlot_4Panel(
+            pairList_1=pairList_1,labelList_1=labelList_1,colorList_1=colorList_1,
+            pairList_2=pairList_2,labelList_2=labelList_2,colorList_2=colorList_2,
+            pairList_3=pairList_3,labelList_3=labelList_3,colorList_3=colorList_3,
+            pairList_4=pairList_4,labelList_4=labelList_4,colorList_4=colorList_4,
+            savelabel='%s_4PanelPlot'%str(savelabel),
+            xlabel='No Label Provided',ylabel='No Label Provided',
+            LogLin=True,LinLin=False,LogLog=False,linewidth=2,
+            darkmode=False,
+            lg_size=14,
+            lg_loc = 'best',
+            alphaGradient = alphaGradient,
+            alphaSteps = SVs)
+
+
+        return svd_results,svd_List,qList # returns dictionary containing singular values, and both right and left singular vectors
+
+    def SVD_SEC(self,
+        file_path,
+        fileList,
+        nmin=0,
+        qmax=None,
+        SVs=3,
+        plot=True,
+        savelabel='SVD',
+        error_mode='average',
+        input_mode='Lin-Lin',
+        alphaGradient = True):
+        '''
+        Doc string
+        
+        Inputs:
+        file_path: the full directory path to the directory that contains the .dat files that are to be processed by the SVD algorithm
+
+        fileList: A list of files to grab from the 'file_path' directory, default is to grab ALL .dat files in the 'file_path' directory
+
+        nmin: How many points to cleave at the beginning
+
+        qmax: Maximum q-value 
+
+        SVs: How many singular values to plot in the V/U plots
+
+        plot: True or False, creates and saves plot regardless.
+
+        savelabel: savelabel for the figure
+
+        error_mode: 'average' or 'direct' BUT 'direct' is technically wrong, just a trick Darren found.
+
+        input_mode: 'Lin-Lin' or 'Kratky'
+
+        alphaGradient: True or False. If true, rows of U plot with use a alpha gradient to make profiles increasingly transparent.
+
+        Returns:
+        Left singular vector: U
+        Singular values: s
+        Right singular vectors: Vh
+        A combined plot of them if plot == True
+        '''
+
+        # Set up file path and inputs
+
+
+        def load_datFilesFull(fileList):
+          c=1
+          diction={}
+          for i in fileList:
+            x = re.sub(".*/", "", i) # replaces any of the path and grabs just the file name
+
+            diction[str(x)] = np.loadtxt(i, 
+              dtype = {'names': ('Q', 'I(Q)', 'ERROR'), 
+              'formats': (float, float, float)},
+              comments = '#')
+          return diction
+
+        if fileList == 'None':
+          fileList_clean = []
+          for j in os.listdir(file_path): # ensures we are only grabbing .dat file
+            if j.endswith(".dat"):
+              fileList_clean.append(j)
+        else:
+          fileList_clean = fileList
+
+        fileList_clean = list(fileList_clean)
+
+        datFileList = []
+        for j in fileList_clean:
+            datFileList.append(file_path + j)
+
+        ## Load in data
+
+        data = load_datFilesFull(fileList=datFileList)
+
+        ## Print messages
+        pn=60
+        print('#'*pn)
+        print('--> Running SVD')
+        print('#'*pn)
+
+        ## Singular values input
+        print('It has been assumed there are %s significant singular values.\nSome output plots will reflect this.'%str(SVs))
+        print('#'*pn)
+        ## Final message
+        print('\n')
+        if input_mode == 'Kratky':
+            print('Input as Kratky [I * q^2]')
+            print('#'*pn)
+
+
+        dim1 = len(datFileList) # first dimension of the array - i.e. how many input files
+
+        # Set data limits
+
+        c=0
+        for j in fileList_clean: # iterate through the list and the nmax that corresponds to qmax
+          if qmax is not None:
+            x = np.where(data[str(j)]['Q'] > qmax)
+            nhigh = x[0][0]
+          c+=1
+          if c >= 1:
+            break
+          else:
+            minList = []
+            for i in fileList_clean:
+              minList.append(len(data[str(i)]['I(Q)']))
+              nhigh = np.min(minList)
+
+        nlow = int(nmin)
+
+        ## Build error List
+
+        n = 0
+        matrixB = []
+        for j in fileList_clean:
+          error = np.nan_to_num(x=data[str(j)]['ERROR'][nlow:nhigh], nan=0) # remove nan
+          avg_error = np.mean(error) # calculate average error for the I array
+          matrixB.append([avg_error]*(nhigh-nlow))
+          matrixB = list(matrixB[0]) # have to flatten - i.e. array within array
+          n+=1
+          if n >= 1:
+            break
+
+        ## Build SVD list
+
+        svd_List = []
+        for j in fileList_clean:
+          I = np.nan_to_num(x=data[str(j)]['I(Q)'][nlow:nhigh], nan=0) # * remove nan
+          q = np.nan_to_num(x=data[str(j)]['Q'][nlow:nhigh], nan=0) # * remove nan
+          error = np.nan_to_num(x=data[str(j)]['ERROR'][nlow:nhigh], nan=0) # * remove nan
+          if error_mode == "average":
+            sigmaWeighted_I = []
+            for i,j in zip(I, matrixB):
+              sigmaWeighted_I.append(i/j)
+          else: 
+            sigmaWeighted_I = I / error
+
+          if input_mode == 'Lin-Lin':
+            svd_List.append(sigmaWeighted_I)
+          elif input_mode == 'Kratky':
+            kratky_I = sigmaWeighted_I * (q**2) # ! Is this the proper method for propagating error in this case?
+            svd_List.append(kratky_I)
+
+        svd_List = np.asarray(svd_List) # * convert list to numpy array
+
+        ## Run SVD
+
+        svd_results = {}
+        svd_results['Vh'], svd_results['s'], svd_results['U'] = sp.svd(svd_List, 
+          full_matrices=False, # ? doesn't assume symmetric matrix - but is that safe to assume in this case?
+          lapack_driver='gesdd') # * 'gesdd' is the same method used by MATLAB
+
+        # print(svd_results)
+
+        ## Plotting results
+
+        qList = 'Nah'
+
+        if plot == True: # allows user to turn plotting off. Makes it easier for me to trouble shoot
+          ### Kratky of input data
+
+
+          pairList_1 = []
+          labs = np.linspace(1,len(fileList_clean),
+                             len(fileList_clean))
+          print(len(labs))
+          for j,z in zip(fileList_clean,labs):
+            pairList_1.append([z,
+                            np.trapz(data[str(j)]['I(Q)'][nlow:nhigh],x=data[str(j)]['Q'][nlow:nhigh])])
+
+          # for i in pairList_1:
+          #   plt.plot(i[1])
+          # plt.show()
+
+          # k=0
+          # for j in fileList_clean:
+          #   plt.plot(data[str(j)]['I(Q)'][nlow:nhigh])
+          #   k+=1
+          #   if k>=10:
+          #     break
+          # plt.show()
+
+          # x=np.linspace(0,10,10)
+          # k=0
+          # for j,z in zip(fileList_clean,x):
+          #   intVal = np.trapz(data[str(j)]['I(Q)'][nlow:nhigh],x=data[str(j)]['Q'][nlow:nhigh])
+          #   print(intVal)
+          #   plt.plot(z,intVal, marker=11)
+          #   k+=1
+          #   if k>=10:
+          #     break
+          # plt.show()
+
+          # pairList_1 = []
+          # for j in fileList_clean:
+          #   pairList_1.append([data[str(j)]['Q'][nlow:nhigh],
+          #                   data[str(j)]['I(Q)'][nlow:nhigh]*data[str(j)]['Q'][nlow:nhigh]**2])
+          # labs = np.linspace(1,len(fileList_clean),
+          #                    len(fileList_clean))
+          labelList_1 = []
+          for i in labs:
+            labelList_1.append(str(i))
+          # for i in fileList_clean:
+          #   labelList_1.append(str(os.path.splitext(str(i))[0]))
+
+          colorList_1 = []
+          c1 = Color("#EB7302")
+          c2 = Color("#02CFEB")
+          gradient = list(c1.range_to(c2, len(labs)))
+
+          for j in gradient:
+            colorList_1.append(str(j))     
+          # print(colorList)
+          sl = '%s_Titration_Kratky'%str(savelabel)
+
+          self.nPlot_variX_and_Color(pairList=pairList_1,
+            labelList=labelList_1,
+            colorList=colorList_1,
+            savelabel=sl,
+            xlabel='Frame',
+            ylabel='Integrated Intensity',
+            LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+            set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,marker=True)
+
+        #   ### Singular values
+          # del pairList, labelList, colorList, sl
+          points = np.linspace(0,
+                               len(svd_results['s']),
+                               len(svd_results['s']))
+          # points = str(int(points))
+          pairList_2 = [[points,svd_results['s']]]
+          print('CHECKING:', len(points), len(svd_results['s']))
+          labelList_2 = ['%s'%str(savelabel)]
+          colorList_2 = ['black']
+          sl = '%s_SVD_SingularVals'%str(savelabel)
+          self.nPointPlot_variX_and_Color(pairList=pairList_2,labelList=labelList_2,
+                                          colorList=colorList_2,
+                                          savelabel=sl,
+                                          xlabel='Index (i)',
+                                          ylabel='Singular Values',
+                                          LogLin=True,LinLin=False,LogLog=False,linewidth=3,
+                                          set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+          
+        #   ### --> Plotting columns of V
+        #   pairList_3 = []
+        #   points = np.linspace(0,
+        #                        len(svd_results['s']),
+        #                        len(svd_results['s']))
+        #   # points = str(int(points))
+        #   ind = SVs
+        #   for j in svd_results['Vh'].T[:ind]:
+        #     pairList_3.append([points,j])
+
+        #   print(len(svd_results['Vh'].T[:ind]))
+
+        #   checkCount = 0
+        #   for j in pairList_3:
+        #     print(len(j[0]),len(j[1]))
+        #     checkCount+=1
+        #     if checkCount >=1:
+        #       break
+
+        #   labs = np.linspace(1,ind,ind)
+        #   labelList_3 = []
+        #   for i in labs:
+        #     labelList_3.append(str(i))
+        #   n = ind
+
+        #   colorList_3 = []
+        #   c1 = Color("#EB7302")
+        #   c2 = Color("#02CFEB")
+        #   gradient = list(c1.range_to(c2, len(labelList_3)))
+
+        #   for j in gradient:
+        #     colorList_3.append(str(j))  
+
+        #   sl = '%s_V_Vectors'%str(savelabel)
+
+        #   # self.nPlot_variX_and_Color(pairList=pairList_3,labelList=labelList_3,
+        #   #                            colorList=colorList_3,
+        #   #                            savelabel=sl,
+        #   #                             xlabel='Point',
+        #   #                             ylabel='Columns of V',
+        #   #                             LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+        #   #                             set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+
+
+        #   ### --> Autocorrelation of V
+        #   '''
+        #   This is done in RAW for both the left and right singular vectors but it is
+        #   not clear to me how to do this exactly.. 
+        #   '''
+
+
+        #   ### --> Plotting columns of U
+        #   pairList_4 = []
+        #   ind = SVs
+        #   print('Hello')
+        #   qList = []
+        #   for j,k in zip(svd_results['U'][:ind], fileList_clean):
+        #     if error_mode == 'average':
+        #       pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j])
+        #       svd_results['Q'] = [data[str(k)]['Q'][nlow:nhigh]]
+        #       qList.append(data[str(k)]['Q'][nlow:nhigh])
+        #       print('HELLO')
+        #     else:
+        #       error = np.nan_to_num(x=data[str(k)]['ERROR'][nlow:nhigh], nan=0)
+        #       pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j*error])
+
+        #   # print('CHECKING:', pairList_4)
+
+        #   labs = np.linspace(1,ind,ind)
+        #   labelList_4 = []
+        #   for i in labs:
+        #     labelList_4.append(str(i))
+        #   n = ind
+
+        #   colorList_4 = []
+        #   c1 = Color("#EB7302")
+        #   c2 = Color("#02CFEB")
+        #   gradient = list(c1.range_to(c2, len(labelList_4)))
+
+        #   for j in gradient:
+        #     colorList_4.append(str(j))  
+
+        #   sl= '%s_U_Vectors'%str(savelabel)
+
+        #   # self.nPlot_variX_and_Color(pairList=pairList_4,labelList=labelList_4,colorList=colorList_4,
+        #   #                            savelabel=sl,
+        #   #                            xlabel='q=$(\\frac{4 \pi sin(\\theta)}{\lambda}) (\\AA^{-1})$',
+        #   #                            ylabel='Rows of U',
+        #   #                            LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+        #   #                            set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+        #   ###  -->  4 Panel Plot
+
+        #   self.nPlot_4Panel(
+        #     pairList_1=pairList_1,labelList_1=labelList_1,colorList_1=colorList_1,
+        #     pairList_2=pairList_2,labelList_2=labelList_2,colorList_2=colorList_2,
+        #     pairList_3=pairList_3,labelList_3=labelList_3,colorList_3=colorList_3,
+        #     pairList_4=pairList_4,labelList_4=labelList_4,colorList_4=colorList_4,
+        #     savelabel='%s_4PanelPlot'%str(savelabel),
+        #     xlabel='No Label Provided',ylabel='No Label Provided',
+        #     LogLin=True,LinLin=False,LogLog=False,linewidth=2,
+        #     darkmode=False,
+        #     lg_size=14,
+        #     lg_loc = 'best',
+        #     alphaGradient = alphaGradient,
+        #     alphaSteps = SVs)
+
+
+        return svd_results,svd_List,qList # returns dictionary containing singular values, and both right and left singular vectors
 
     def load_fitFiles(self,fileList):
       '''
