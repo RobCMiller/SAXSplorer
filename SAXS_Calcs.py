@@ -1347,6 +1347,13 @@ class SAXSCalcs:
           pairList_2 = [[points,svd_results['s']]]
           print('CHECKING:', len(points), len(svd_results['s']))
           labelList_2 = ['%s'%str(savelabel)]
+          # colorList_2 = []
+          # c1 = Color("#EB7302")
+          # c2 = Color("#02CFEB")
+          # gradient = list(c1.range_to(c2, len(points)))
+
+          # for j in gradient:
+          #   colorList_2.append(str(j))     
           colorList_2 = ['black']
           sl = '%s_SVD_SingularVals'%str(savelabel)
           self.nPointPlot_variX_and_Color(pairList=pairList_2,labelList=labelList_2,
@@ -1359,47 +1366,61 @@ class SAXSCalcs:
 
           
         #   ### --> Plotting columns of V
-        #   pairList_3 = []
-        #   points = np.linspace(0,
-        #                        len(svd_results['s']),
-        #                        len(svd_results['s']))
-        #   # points = str(int(points))
-        #   ind = SVs
-        #   for j in svd_results['Vh'].T[:ind]:
-        #     pairList_3.append([points,j])
+          pairList_3 = []
+          print('LENGTH of points: ', len(svd_results['Vh']))
+          points = np.linspace(0,
+                               len(svd_results['Vh']),
+                               len(svd_results['Vh']))
+          # points = str(int(points))
 
-        #   print(len(svd_results['Vh'].T[:ind]))
+          print('LOOPING!!!')
+          ind = SVs
+          for j in svd_results['Vh'].T[:ind]:
+            print(len(points),len(j))
+            pairList_3.append([points,j[1]]) # should be first column
 
-        #   checkCount = 0
-        #   for j in pairList_3:
-        #     print(len(j[0]),len(j[1]))
-        #     checkCount+=1
-        #     if checkCount >=1:
-        #       break
+          print('Length of PairList 3: ',len(pairList_3))
 
-        #   labs = np.linspace(1,ind,ind)
-        #   labelList_3 = []
-        #   for i in labs:
-        #     labelList_3.append(str(i))
-        #   n = ind
+          # print(len(svd_results['Vh'].T[:ind]))
 
-        #   colorList_3 = []
-        #   c1 = Color("#EB7302")
-        #   c2 = Color("#02CFEB")
-        #   gradient = list(c1.range_to(c2, len(labelList_3)))
+          # checkCount = 0
+          # for j in pairList_3:
+          #   print(len(j[0]),len(j[1]))
+          #   checkCount+=1
+          #   if checkCount >=1:
+          #     break
 
-        #   for j in gradient:
-        #     colorList_3.append(str(j))  
+          labs = np.linspace(1,ind,ind)
+          labelList_3 = []
+          for i in labs:
+            labelList_3.append(str(i))
+          n = ind
 
-        #   sl = '%s_V_Vectors'%str(savelabel)
+          colorList_3 = []
+          c1 = Color("#EB7302")
+          c2 = Color("#02CFEB")
+          gradient = list(c1.range_to(c2, len(labelList_3)))
 
-        #   # self.nPlot_variX_and_Color(pairList=pairList_3,labelList=labelList_3,
-        #   #                            colorList=colorList_3,
-        #   #                            savelabel=sl,
-        #   #                             xlabel='Point',
-        #   #                             ylabel='Columns of V',
-        #   #                             LogLin=False,LinLin=True,LogLog=False,linewidth=3,
-        #   #                             set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+          for j in gradient:
+            colorList_3.append(str(j))  
+
+          sl = '%s_V_Vectors'%str(savelabel)
+
+          print('PAIRLIST PARAMETERS')
+          print(len(pairList_3[0]),len(pairList_3[1]))
+          print(pairList_3[0][1])
+          # print(pairList_3[1])
+          for j in pairList_3:
+            plt.plot(j[0],j[1])
+          plt.show()
+
+          # self.nPlot_variX_and_Color(pairList=pairList_3,labelList=labelList_3,
+          #                            colorList=colorList_3,
+          #                            savelabel=sl,
+          #                             xlabel='Point',
+          #                             ylabel='Columns of V',
+          #                             LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+          #                             set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
 
 
 
