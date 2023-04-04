@@ -33,6 +33,8 @@ import scipy.linalg as sp
 import re
 from random import randint
 from colour import Color
+from itertools import accumulate
+import more_itertools as mit
 #######################################################
 #######################################################
 # Working notes:
@@ -56,6 +58,119 @@ class SAXSCalcs:
 
         # other stuff.. atsas?
 
+    def binningProfiles(self,data, binFactor=3):
+        label_count1 = 0
+        binned_iq = {}
+        binned_q = {}
+        binned_err = {}
+        for j in data:
+            tmp = list(mit.windowed(data[str(j)]['I(Q)'],n=binFactor, step=binFactor))
+            tmpQ = list(mit.windowed(data[str(j)]['Q'],n=binFactor, step=binFactor))
+            tmpErr = list(mit.windowed(data[str(j)]['ERROR'],n=binFactor, step=binFactor))
+            for i in tmp:
+                if None not in i:
+                    try:
+                        binned_iq[str(j)].append(np.mean(i))
+                    except KeyError:
+                        binned_iq[str(j)] = [np.mean(i)]
+            for k in tmpQ:
+                if None not in k:
+                    try:
+                        binned_q[str(j)].append(np.mean(k))
+                    except KeyError:
+                        binned_q[str(j)] = [np.mean(k)]
+            for z in tmpErr:
+                if None not in z:
+                    try:
+                        binned_err[str(j)].append( np.sqrt( sum( val ** 2 for val in z ) ) / binFactor )
+                    except KeyError:
+                        binned_err[str(j)] = [ np.sqrt( sum( val ** 2 for val in z  ) ) / binFactor ]
+            if label_count1 >=2:
+                break
+            label_count1 += 1
+    
+        
+    
+        return binned_iq, binned_q, binned_err
+
+    def binning_inFrames(self,data,binFactor=3):
+        '''
+        
+        '''
+        tmp_dict_dat = {}
+        tmp_dict_Q = {}
+        tmp_dict_err = {}
+        for j in data:
+            tmp_dict_dat[str(j)] = data[str(j)]['I(Q)']
+            tmp_dict_Q[str(j)] = data[str(j)]['Q']
+            tmp_dict_err[str(j)] = data[str(j)]['ERROR']
+        
+        dat_values = np.array(list(tmp_dict_dat.values()))
+        Q_values = np.array(list(tmp_dict_Q.values()))
+        err_values = np.array(list(tmp_dict_err.values()))
+        
+        dat_array = np.nan_to_num(dat_values.T)
+        Q_array = np.nan_to_num(Q_values.T)
+        err_array = np.nan_to_num(err_values.T)
+        
+        
+        k=0
+        reduced_dat_dict = {}
+        for j in dat_array:
+            tmp = np.array(list(mit.windowed(j,n=binFactor, step=binFactor)))
+            for i in tmp:
+                if None not in i:
+                    try:
+                        reduced_dat_dict[str(k)].append(np.mean(i))
+                    except KeyError:
+                        reduced_dat_dict[str(k)] = [np.mean(i)]
+            k+=1
+        l=0
+        reduced_Q_dict = {}
+        for j in Q_array:
+            tmp = np.array(list(mit.windowed(j,n=binFactor, step=binFactor)))
+            for i in tmp:
+                if None not in i:
+                    try:
+                        reduced_Q_dict[str(l)].append(np.mean(i))
+                    except KeyError:
+                        reduced_Q_dict[str(l)] = [np.mean(i)]
+            l+=1
+        c=0
+        reduced_err_dict = {}
+        for j in err_array:
+            tmp = np.array(list(mit.windowed(j,n=binFactor, step=binFactor)))
+            for i in tmp:
+                if None not in i:
+                    try:
+                        reduced_err_dict[str(c)].append( np.sqrt( sum( val ** 2 for val in i ) ) / binFactor )
+                    except KeyError:
+                        reduced_err_dict[str(c)] = [ np.sqrt( sum( val ** 2 for val in i ) ) / binFactor ]
+            c+=1  
+        
+        reduced_dat_array = np.array(list(reduced_dat_dict.values()))
+        reduced_dat_array_final = reduced_dat_array.T
+
+        reduced_Q_array = np.array(list(reduced_Q_dict.values()))
+        reduced_Q_array_final = reduced_Q_array.T    
+        
+        reduced_err_array = np.array(list(reduced_err_dict.values()))
+        reduced_err_array_final = reduced_err_array.T
+        
+        full_dict = {}
+        for n in range(0,len(reduced_dat_array_final)):
+            full_dict[str(n)] = {}
+        count = 0
+        for j,z,l,i in zip(reduced_dat_array_final, reduced_err_array_final,reduced_Q_array_final,full_dict):
+            full_dict[str(i)]['I(Q)'] = j
+            full_dict[str(i)]['Q'] = l
+            full_dict[str(i)]['ERROR'] = z
+        
+        nameList = []
+        for j in full_dict:
+            nameList.append(j)
+        
+        return reduced_dat_array_final, reduced_err_array_final, full_dict, nameList
     
     def nPlot_4Panel(self,
         pairList_1,labelList_1,colorList_1,
@@ -69,7 +184,8 @@ class SAXSCalcs:
         lg_size=14,
         lg_loc = 'best',
         alphaGradient = False,
-        alphaSteps = 4):
+        alphaSteps = 4,
+        sec=False):
         '''
         :param pairList: list of lists (tuple), must be [[x1,y1],...[xn,yn]]
         :param labelList: list of length n, labeling the sets of tuples in pairList
@@ -126,7 +242,11 @@ class SAXSCalcs:
 
 
         cycol = cycle(['-','-','-'])  
-        alphaCycol = cycle(np.linspace(1,0.1,alphaSteps))
+        # alphaCycol = cycle(np.linspace(1,0.1,alphaSteps))
+
+        n=alphaSteps
+        alphaCycol1 = list(accumulate(range(n), lambda acc, val: acc*0.8,initial=1))
+        alphaCycol2 = list(accumulate(range(n), lambda acc, val: acc*0.8,initial=1))
 
         if alphaGradient == False:
           for d,e,f,w,y,x in zip(pairList_3,colorList_3,labelList_3,
@@ -142,19 +262,20 @@ class SAXSCalcs:
                        color=y,
                        linestyle=next(cycol))
         else:
-          for d,e,f,w,y,x in zip(pairList_3,colorList_3,labelList_3,
-            pairList_4,colorList_4,labelList_4):
+          for d,e,f,a1,w,y,x,a2 in zip(pairList_3,colorList_3,labelList_3,alphaCycol1,
+            pairList_4,colorList_4,labelList_4,alphaCycol2):
               ax2.plot(d[0],d[1],
                        label=f,
                        linewidth=linewidth,
                        color=e,
-                       linestyle=next(cycol))
+                       linestyle=next(cycol),
+                       alpha=a1)
               ax3.plot(w[0],w[1],
                        label=x,
                        linewidth=linewidth,
                        color=y,
                        linestyle=next(cycol),
-                       alpha=next(alphaCycol))
+                       alpha=a2)
 
 
   
@@ -167,6 +288,12 @@ class SAXSCalcs:
                       linewidth=linewidth,
                       color=j,
                       linestyle=next(cycol))
+            elif sec==True:
+              ax.plot(i[0],i[1],
+                      label=z,
+                      markersize=linewidth,
+                      color=j,
+                      marker='o')
             else:
               ax.plot(i[0],i[1],
                       label=z,
@@ -183,8 +310,12 @@ class SAXSCalcs:
             linestyle=None,
             marker='o')
 
-        ax.set_ylabel('I(q) $\\rm \\cdot q^{2}$', size=18)
-        ax.set_xlabel('q ($\\rm \\AA^{-1}$)', size=18)
+        if sec==True:
+          ax.set_ylabel('Integrated Intensity', size=18)
+          ax.set_xlabel('Frames', size=18)
+        else:
+          ax.set_ylabel('I(q) $\\rm \\cdot q^{2}$', size=18)
+          ax.set_xlabel('q ($\\rm \\AA^{-1}$)', size=18)
         ax1.set_ylabel('Singular Values', size=18)
         ax1.set_xlabel('Index (i)', size=18)
         ax1.set_ylabel('Singular Values', size=18)
@@ -206,7 +337,7 @@ class SAXSCalcs:
     def nPlot_variX_and_Color(self,pairList,labelList,colorList,savelabel,xlabel='No Label Provided',ylabel='No Label Provided',
               LogLin=False,LinLin=True,LogLog=False,linewidth=3,
               set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,
-              lg_size=4,marker=False):
+              lg_size=4,marker=False,alphaList=[1,0.9,0.81],plot=False):
         '''
         :param pairList: list of lists (tuple), must be [[x1,y1],...[xn,yn]]
         :param labelList: list of length n, labeling the sets of tuples in pairList
@@ -248,16 +379,18 @@ class SAXSCalcs:
         #     print("Cannot set more than one mode equal to True")
         #     return
 
-        cycol = cycle(['-','-','-'])    
+        cycol = cycle(['-','-','-'])   
+        alphaCycol = cycle(alphaList) 
 
         if marker == True:
-          print('MARKER')
+          # print('MARKER')
           for i,j,z in zip(pairList,colorList,labelList):
               plt.plot(i[0],i[1],
                           label=z,
                           color=j,
                           marker='o',
-                          markersize=linewidth)
+                          markersize=linewidth,
+                          alpha=next(alphaCycol))
         else:
           n=0
           if LogLin==True:
@@ -266,7 +399,8 @@ class SAXSCalcs:
                               label=labelList[n],
                               linewidth=linewidth,
                               color=j,
-                              linestyle=next(cycol))
+                              linestyle=next(cycol),
+                              alpha=next(alphaCycol))
                   n+=1
                   # plt.semilogy(i[2],i[3],
                   #             label=labelList[n],
@@ -279,7 +413,8 @@ class SAXSCalcs:
                               label=z,
                               linewidth=linewidth,
                               color=j,
-                              linestyle=next(cycol))
+                              linestyle=next(cycol),
+                              alpha=next(alphaCycol))
                   n+=1
           elif LogLog==True:
               for i in pairList:
@@ -309,12 +444,15 @@ class SAXSCalcs:
         # fig.tight_layout()
 
         plt.savefig(savelabel+'.png',format='png',bbox_inches='tight',dpi=300)
-        plt.show()
+        if plot==False:
+          plt.close()
+        else:
+          plt.show()
 
     def nPointPlot_variX_and_Color(self,pairList,labelList,colorList,savelabel,xlabel='No Label Provided',ylabel='No Label Provided',
               LogLin=True,LinLin=False,LogLog=False,linewidth=3,
               set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,
-              lg_size=8):
+              lg_size=8,plot=False):
         '''
         :param pairList: list of lists (tuple), must be [[x1,y1],...[xn,yn]]
         :param labelList: list of length n, labeling the sets of tuples in pairList
@@ -422,7 +560,10 @@ class SAXSCalcs:
         fig.tight_layout()
 
         plt.savefig(savelabel+'.png',format='png',bbox_inches='tight',dpi=300)
-        plt.show()
+        if plot==False:
+          plt.close()
+        else:
+          plt.show()
 
     def superimpose(self,ref_q,ref_i,qmin,qmax,scale_list,choice='Scale'):
         """
@@ -1123,7 +1264,8 @@ class SAXSCalcs:
         savelabel='SVD',
         error_mode='average',
         input_mode='Lin-Lin',
-        alphaGradient = True):
+        alphaGradient = True,
+        data=False):
         '''
         Doc string
         
@@ -1157,36 +1299,40 @@ class SAXSCalcs:
 
         # Set up file path and inputs
 
+        if data == False:
+          def load_datFilesFull(fileList):
+            c=1
+            diction={}
+            for i in fileList:
+              x = re.sub(".*/", "", i) # replaces any of the path and grabs just the file name
 
-        def load_datFilesFull(fileList):
-          c=1
-          diction={}
-          for i in fileList:
-            x = re.sub(".*/", "", i) # replaces any of the path and grabs just the file name
+              diction[str(x)] = np.loadtxt(i, 
+                dtype = {'names': ('Q', 'I(Q)', 'ERROR'), 
+                'formats': (float, float, float)},
+                comments = '#')
+            return diction
 
-            diction[str(x)] = np.loadtxt(i, 
-              dtype = {'names': ('Q', 'I(Q)', 'ERROR'), 
-              'formats': (float, float, float)},
-              comments = '#')
-          return diction
+          if fileList == 'None':
+            fileList_clean = []
+            for j in os.listdir(file_path): # ensures we are only grabbing .dat file
+              if j.endswith(".dat"):
+                fileList_clean.append(j)
+          else:
+            fileList_clean = fileList
 
-        if fileList == 'None':
-          fileList_clean = []
-          for j in os.listdir(file_path): # ensures we are only grabbing .dat file
-            if j.endswith(".dat"):
-              fileList_clean.append(j)
+          fileList_clean = list(fileList_clean)
+
+          datFileList = []
+          for j in fileList_clean:
+              datFileList.append(file_path + j)
+
+          ## Load in data
+
+          data = load_datFilesFull(fileList=datFileList)
+
         else:
+          data = data
           fileList_clean = fileList
-
-        fileList_clean = list(fileList_clean)
-
-        datFileList = []
-        for j in fileList_clean:
-            datFileList.append(file_path + j)
-
-        ## Load in data
-
-        data = load_datFilesFull(fileList=datFileList)
 
         ## Print messages
         pn=60
@@ -1204,7 +1350,8 @@ class SAXSCalcs:
             print('#'*pn)
 
 
-        dim1 = len(datFileList) # first dimension of the array - i.e. how many input files
+        dim1 = len(fileList) # first dimension of the array - i.e. how many input files
+        # print('DIM1',dim1)
 
         # Set data limits
 
@@ -1259,6 +1406,9 @@ class SAXSCalcs:
 
         svd_List = np.asarray(svd_List) # * convert list to numpy array
 
+        # print('SVD LIST')
+        # print(len(svd_List),svd_List.shape)
+
         ## Run SVD
 
         svd_results = {}
@@ -1266,6 +1416,10 @@ class SAXSCalcs:
           full_matrices=False, # ? doesn't assume symmetric matrix - but is that safe to assume in this case?
           lapack_driver='gesdd') # * 'gesdd' is the same method used by MATLAB
 
+        # print('SHAPES')
+        # print(svd_results['Vh'].shape)
+        # print(svd_results['s'].shape)
+        # print(svd_results['U'].shape)
         # print(svd_results)
 
         ## Plotting results
@@ -1279,7 +1433,7 @@ class SAXSCalcs:
           pairList_1 = []
           labs = np.linspace(1,len(fileList_clean),
                              len(fileList_clean))
-          print(len(labs))
+          # print(len(labs))
           for j,z in zip(fileList_clean,labs):
             pairList_1.append([z,
                             np.trapz(data[str(j)]['I(Q)'][nlow:nhigh],x=data[str(j)]['Q'][nlow:nhigh])])
@@ -1336,16 +1490,19 @@ class SAXSCalcs:
             xlabel='Frame',
             ylabel='Integrated Intensity',
             LogLin=False,LinLin=True,LogLog=False,linewidth=3,
-            set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,marker=True)
+            set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,marker=True,plot=False)
 
         #   ### Singular values
           # del pairList, labelList, colorList, sl
+
+          # print('SV RESULTS')
+          # print(svd_results['s'])
           points = np.linspace(0,
                                len(svd_results['s']),
                                len(svd_results['s']))
           # points = str(int(points))
           pairList_2 = [[points,svd_results['s']]]
-          print('CHECKING:', len(points), len(svd_results['s']))
+          # print('CHECKING:', len(points), len(svd_results['s']))
           labelList_2 = ['%s'%str(savelabel)]
           # colorList_2 = []
           # c1 = Color("#EB7302")
@@ -1362,24 +1519,29 @@ class SAXSCalcs:
                                           xlabel='Index (i)',
                                           ylabel='Singular Values',
                                           LogLin=True,LinLin=False,LogLog=False,linewidth=3,
-                                          set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+                                          set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,plot=False)
 
           
+       
+
+
+
+
         #   ### --> Plotting columns of V
           pairList_3 = []
-          print('LENGTH of points: ', len(svd_results['Vh']))
+          # print('LENGTH of points: ', len(svd_results['Vh']))
           points = np.linspace(0,
                                len(svd_results['Vh']),
                                len(svd_results['Vh']))
           # points = str(int(points))
 
-          print('LOOPING!!!')
+          # print('LOOPING!!!')
           ind = SVs
           for j in svd_results['Vh'].T[:ind]:
-            print(len(points),len(j))
-            pairList_3.append([points,j[1]]) # should be first column
+            # print(len(points),j,j[1])
+            pairList_3.append([points,j]) # should be first column
 
-          print('Length of PairList 3: ',len(pairList_3))
+          # print('Length of PairList 3: ',len(pairList_3))
 
           # print(len(svd_results['Vh'].T[:ind]))
 
@@ -1406,21 +1568,27 @@ class SAXSCalcs:
 
           sl = '%s_V_Vectors'%str(savelabel)
 
-          print('PAIRLIST PARAMETERS')
-          print(len(pairList_3[0]),len(pairList_3[1]))
-          print(pairList_3[0][1])
-          # print(pairList_3[1])
-          for j in pairList_3:
-            plt.plot(j[0],j[1])
-          plt.show()
+          # print('PAIRLIST PARAMETERS')
+          # print(len(pairList_3[0]),len(pairList_3[1]))
+          # print(pairList_3[0][1])
+          # # print(pairList_3[1])
+          # for j in pairList_3:
+          #   plt.plot(j[0],j[1])
+          # plt.show()
 
-          # self.nPlot_variX_and_Color(pairList=pairList_3,labelList=labelList_3,
-          #                            colorList=colorList_3,
-          #                            savelabel=sl,
-          #                             xlabel='Point',
-          #                             ylabel='Columns of V',
-          #                             LogLin=False,LinLin=True,LogLog=False,linewidth=3,
-          #                             set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+
+          n=SVs
+          alphaList = list(accumulate(range(n), lambda acc, val: acc*0.9,initial=1))
+          # print(alphaList)
+
+          self.nPlot_variX_and_Color(pairList=pairList_3,labelList=labelList_3,
+                                     colorList=colorList_3,
+                                     savelabel=sl,
+                                      xlabel='Point',
+                                      ylabel='Columns of V',
+                                      LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+                                      set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False,
+                                      alphaList=alphaList)
 
 
 
@@ -1432,60 +1600,61 @@ class SAXSCalcs:
 
 
         #   ### --> Plotting columns of U
-        #   pairList_4 = []
-        #   ind = SVs
-        #   print('Hello')
-        #   qList = []
-        #   for j,k in zip(svd_results['U'][:ind], fileList_clean):
-        #     if error_mode == 'average':
-        #       pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j])
-        #       svd_results['Q'] = [data[str(k)]['Q'][nlow:nhigh]]
-        #       qList.append(data[str(k)]['Q'][nlow:nhigh])
-        #       print('HELLO')
-        #     else:
-        #       error = np.nan_to_num(x=data[str(k)]['ERROR'][nlow:nhigh], nan=0)
-        #       pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j*error])
+          pairList_4 = []
+          ind = SVs
+          # print('Hello')
+          qList = []
+          for j,k in zip(svd_results['U'][:ind], fileList_clean):
+            if error_mode == 'average':
+              pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j])
+              svd_results['Q'] = [data[str(k)]['Q'][nlow:nhigh]]
+              qList.append(data[str(k)]['Q'][nlow:nhigh])
+              # print('HELLO')
+            else:
+              error = np.nan_to_num(x=data[str(k)]['ERROR'][nlow:nhigh], nan=0)
+              pairList_4.append([data[str(k)]['Q'][nlow:nhigh],j*error])
 
-        #   # print('CHECKING:', pairList_4)
+          # print('CHECKING:', pairList_4)
 
-        #   labs = np.linspace(1,ind,ind)
-        #   labelList_4 = []
-        #   for i in labs:
-        #     labelList_4.append(str(i))
-        #   n = ind
+          labs = np.linspace(1,ind,ind)
+          labelList_4 = []
+          for i in labs:
+            labelList_4.append(str(i))
+          n = ind
 
-        #   colorList_4 = []
-        #   c1 = Color("#EB7302")
-        #   c2 = Color("#02CFEB")
-        #   gradient = list(c1.range_to(c2, len(labelList_4)))
+          colorList_4 = []
+          c1 = Color("#EB7302")
+          c2 = Color("#02CFEB")
+          gradient = list(c1.range_to(c2, len(labelList_4)))
 
-        #   for j in gradient:
-        #     colorList_4.append(str(j))  
+          for j in gradient:
+            colorList_4.append(str(j))  
 
-        #   sl= '%s_U_Vectors'%str(savelabel)
+          sl= '%s_U_Vectors'%str(savelabel)
 
-        #   # self.nPlot_variX_and_Color(pairList=pairList_4,labelList=labelList_4,colorList=colorList_4,
-        #   #                            savelabel=sl,
-        #   #                            xlabel='q=$(\\frac{4 \pi sin(\\theta)}{\lambda}) (\\AA^{-1})$',
-        #   #                            ylabel='Rows of U',
-        #   #                            LogLin=False,LinLin=True,LogLog=False,linewidth=3,
-        #   #                            set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
+          self.nPlot_variX_and_Color(pairList=pairList_4,labelList=labelList_4,colorList=colorList_4,
+                                     savelabel=sl,
+                                     xlabel='q=$(\\frac{4 \pi sin(\\theta)}{\lambda}) (\\AA^{-1})$',
+                                     ylabel='Rows of U',
+                                     LogLin=False,LinLin=True,LogLog=False,linewidth=3,
+                                     set_ylim=False,ylow=0.0001,yhigh=1,darkmode=False)
 
         #   ###  -->  4 Panel Plot
 
-        #   self.nPlot_4Panel(
-        #     pairList_1=pairList_1,labelList_1=labelList_1,colorList_1=colorList_1,
-        #     pairList_2=pairList_2,labelList_2=labelList_2,colorList_2=colorList_2,
-        #     pairList_3=pairList_3,labelList_3=labelList_3,colorList_3=colorList_3,
-        #     pairList_4=pairList_4,labelList_4=labelList_4,colorList_4=colorList_4,
-        #     savelabel='%s_4PanelPlot'%str(savelabel),
-        #     xlabel='No Label Provided',ylabel='No Label Provided',
-        #     LogLin=True,LinLin=False,LogLog=False,linewidth=2,
-        #     darkmode=False,
-        #     lg_size=14,
-        #     lg_loc = 'best',
-        #     alphaGradient = alphaGradient,
-        #     alphaSteps = SVs)
+          self.nPlot_4Panel(
+            pairList_1=pairList_1,labelList_1=labelList_1,colorList_1=colorList_1,
+            pairList_2=pairList_2,labelList_2=labelList_2,colorList_2=colorList_2,
+            pairList_3=pairList_3,labelList_3=labelList_3,colorList_3=colorList_3,
+            pairList_4=pairList_4,labelList_4=labelList_4,colorList_4=colorList_4,
+            savelabel='%s_4PanelPlot'%str(savelabel),
+            xlabel='No Label Provided',ylabel='No Label Provided',
+            LogLin=True,LinLin=False,LogLog=False,linewidth=2,
+            darkmode=False,
+            lg_size=14,
+            lg_loc = 'best',
+            alphaGradient = alphaGradient,
+            alphaSteps = SVs,
+            sec=True)
 
 
         return svd_results,svd_List,qList # returns dictionary containing singular values, and both right and left singular vectors
@@ -1519,6 +1688,12 @@ class SAXSCalcs:
         c+=1
 
       return diction
+
+    def simpleAverage(self, datacol, errcol):
+      '''
+
+      '''
+      print('Hello')
 
 
     def runCrysol(self, datFileList,
@@ -1757,9 +1932,8 @@ class SAXSCalcs:
                                            LogLog=False,linewidth=3,
                                            set_ylim=False,ylow=0.0001,
                                            yhigh=1,darkmode=False,
-                                           lg_size=14)
+                                           lg_size=14,plot=True)
               else:
-                # Log-Lin
                 pairList = [
                 [Q, expt_IQ],
                 [Q, model_IQ]]
@@ -1777,7 +1951,7 @@ class SAXSCalcs:
                                            LogLog=False,linewidth=3,
                                            set_ylim=False,ylow=0.0001,
                                            yhigh=1,darkmode=False,
-                                           lg_size=14)
+                                           lg_size=14,plot=True)
 
               export_dictionary['%s'%str(filename)] = {'Q': Q,'exptIQ': expt_IQ, 'modelIQ': model_IQ}
 
