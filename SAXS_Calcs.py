@@ -59,7 +59,6 @@ class SAXSCalcs:
         # other stuff.. atsas?
 
     def binningProfiles(self,data, binFactor=3):
-        label_count1 = 0
         binned_iq = {}
         binned_q = {}
         binned_err = {}
@@ -85,11 +84,6 @@ class SAXSCalcs:
                         binned_err[str(j)].append( np.sqrt( sum( val ** 2 for val in z ) ) / binFactor )
                     except KeyError:
                         binned_err[str(j)] = [ np.sqrt( sum( val ** 2 for val in z  ) ) / binFactor ]
-            if label_count1 >=2:
-                break
-            label_count1 += 1
-    
-        
     
         return binned_iq, binned_q, binned_err
 
@@ -171,6 +165,174 @@ class SAXSCalcs:
             nameList.append(j)
         
         return reduced_dat_array_final, reduced_err_array_final, full_dict, nameList
+
+    def run_FoxS(self, pdb1, expt1,
+                 fast_mode=False,
+                 n_pointsinProfile = 500,
+                 maxq=0.25,
+                 exH=False,
+                 offset=False,
+                 resLevel=False,
+                 color1='black',
+                 color2='#4BC8C8',
+                 lg_size=10):
+
+
+      ############################################################
+      # Build a few functions to disable and enable print output
+      # to the terminal window
+
+      # Disable
+      # def blockPrint():
+      #     sys.stdout = open(os.devnull, 'w')
+
+      # # Restore
+      # def enablePrint():
+      #     sys.stdout = sys.__stdout__
+
+
+      ############################################################
+      # Check if the user has FoxS installed
+
+      print('-----> Beginning FoxS calculations')
+
+      foxsDir='/usr/local/bin/foxs'
+
+      if os.path.exists(foxsDir):
+        print('-----> Local FoxS install located')
+      else:
+        print('-----> Local FoxS install was NOT able to be located..\n--> This script assumes the install is located at: %s'%foxsDir)
+        print('-----> Terminating FoxS calculations')
+        sys.exit()
+
+
+      print('\n----> Now building FoxS command....\n')
+
+      nq = n_pointsinProfile
+
+      cmd = 'foxs' + ' ' + pdb1 + ' ' + expt1 #+ ' ' + '-v True'
+
+      if fast_mode=='True':
+        cmd = cmd + ' ' + '-r True'
+      else:
+        cmd = cmd
+
+      if nq=='True':
+        cmd = cmd
+      else:
+        cmd = cmd + ' ' + '-s %s'%str(nq)
+
+      if maxq=='True':
+        cmd = cmd
+      else:
+        cmd = cmd + ' ' + '-q %s'%str(maxq)
+
+      if exH=='True':
+        cmd = cmd + ' ' + '-h True'
+      else:
+        cmd = cmd
+
+      if resLevel == True:
+        cmd = cmd + ' ' + '-r True'  
+
+      if offset=='True':
+        cmd = cmd + ' ' + '-o True'
+      else:
+        cmd = cmd
+
+      # print(cmd)
+      # # run command
+      # os.system(cmd)
+
+      print('The command passed to the terminal:')
+      print(cmd)
+
+      proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
+      (out, err) = proc.communicate()
+      # print ("program output:", out.decode('ascii')) # use re module to parse the output
+      print('\n')
+
+      # ---->
+      # search for chi-squared value
+
+      pattern_chi2 = re.compile(r'C[a-zA-Z]+\^2...([0-9]+).([)0-9]+)?') # finds chi-squared value from FoxS output
+
+      # ---->
+      # search for coefficient values (c1 and c2)
+
+      pattern_c1 = re.compile(r'c1...(-)?[0-9]+.([)0-9]+)?')
+      pattern_c2 = re.compile(r'c2...(-)?([0-9]+).([)0-9]+)?')
+
+      # += 1 or more until we hit @
+
+      # ---->
+      match_chi2 = pattern_chi2.finditer(out.decode('ascii'))
+      match_c1 = pattern_c1.finditer(out.decode('ascii'))
+      match_c2 = pattern_c2.finditer(out.decode('ascii'))
+
+
+      # ---->
+
+      # print('############################')
+      # print('FoxS OUTPUT')
+      # print(out.decode('ascii'))
+
+      print('####################################')
+      print('Parsed output from FoxS calculations')
+      print('####################################')
+      # ----> 
+
+      for match in match_chi2:
+          il,ij=match.span()[0],match.span()[1]
+          chi2=out.decode('ascii')[il:ij]
+          print(chi2) # return Chi^2 value from fit
+          approx_chi2=match.group(1)
+
+      for match in match_c1:
+          il,ij=match.span()[0],match.span()[1]
+          c1=out.decode('ascii')[il:ij]
+          print(c1) # return c1 value
+          if c1=='c1 = 0.99':
+            print('----> Minimum c1 value used. Quality of the fit is likely poor')
+          elif c1=='c1 = 1.05':
+            print('----> Maximum c1 value used. Quality of the fit is likely poor')
+
+      for match in match_c2:
+          il,ij=match.span()[0],match.span()[1]
+          c2=out.decode('ascii')[il:ij]
+          print(c2) # return c2 value
+          # print(match.group(1),match.group(2))
+          if '-2' in c2:
+            print('----> Minimum c2 value used. Quality of the fit is likely poor')
+          elif '4' in c2:
+            print('----> Maximum c2 value used. Quality of the fit is likely poor')
+
+
+      #### fetch output file for plotting
+
+      # print(expt1)
+      output_name=pdb1.replace('.pdb','') + '_' + os.path.basename(expt1).replace('.dat','') + '.fit'
+
+      plot_data=np.loadtxt(output_name,
+      dtype={'names': ('Q', 'I(Q)','ERROR','Model'), 'formats': (np.float,np.float,np.float,np.float)},
+      comments='#')
+
+      pairList=[[plot_data['Q'],plot_data['I(Q)']*plot_data['Q']**2],[plot_data['Q'],plot_data['Model']*plot_data['Q']**2]]
+      labelList=['Expt - $\\chi^{2} \\approx$%s'%approx_chi2,'FoxS Model']
+      colorList=[color1,color2]
+
+      export_dictionary={}
+      export_dictionary[str(os.path.basename(expt1).replace('.dat',''))] = {'Q': plot_data['Q'],'exptIQ': plot_data['I(Q)'], 'modelIQ': plot_data['Model']}
+
+      # blockPrint() # suppressing plot function print outs.. not necessary here.
+      self.nPlot_variX_and_Color(pairList=pairList,labelList=labelList,colorList=colorList,savelabel=output_name+'_ScatteringProfile',
+        xlabel='$\\rm q (\\AA^{-1})$',ylabel='$\\rm I(q) \\cdot q^{2}$',lg_size=lg_size,plot=True)
+      # enablePrint()
+
+        # FoxS_simple(pdb1=pdb1,expt1=expt1,fast_mode=fast_mode,nq=nq,maxq=maxq, exH=exH,offset=offset,
+        # plot=True)
+      return export_dictionary
+
     
     def nPlot_4Panel(self,
         pairList_1,labelList_1,colorList_1,
